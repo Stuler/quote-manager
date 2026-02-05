@@ -1,0 +1,12 @@
+@media print {
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    .main { display: block; padding: 0; }
+    .previewWrap { display: block; }
+    .a4 { border: none; border-radius: 0; box-shadow: none; margin: 0; }
+}
+
+@page {
+    size: A4;
+    margin: 0;
+}
