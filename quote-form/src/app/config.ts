@@ -3,14 +3,17 @@ import type { Company } from "./types";
 
 export const APP_CONFIG = {
     supplier: {
-        name: "Moja Firma s.r.o.",
-        street: "Ulica 1",
-        city: "Bratislava",
-        zip: "811 01",
+        id: "agropuls",
+        name: "Agropuls s.r.o",
+        street: "Čsl. Armády 1117",
+        city: "Trebišov",
+        zip: "075 01",
         country: "Slovensko",
-        ico: "12345678",
-        dic: "1234567890",
-        icdph: "SK1234567890",
+        ico: "36677469",
+        dic: "2022252100",
+        icdph: "SK2022252100",
+        logoDataUrl: logoUrl,
+        phoneMobile: "",
     } satisfies Company,
 
     logoUrl,

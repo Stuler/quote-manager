@@ -2,6 +2,7 @@ export type CurrencyCode = "EUR" | "CZK";
 export type VatMode = "WITHOUT_VAT" | "WITH_VAT";
 
 export type Company = {
+    id: string;
     name: string;
     street?: string;
     city?: string;
@@ -10,6 +11,8 @@ export type Company = {
     ico?: string;
     dic?: string;
     icdph?: string;
+    phoneMobile?: string;
+    logoDataUrl?: string | null;
 
     deliveryStreet?: string;
     deliveryCity?: string;

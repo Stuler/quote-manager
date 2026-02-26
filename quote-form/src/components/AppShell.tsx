@@ -1,15 +1,13 @@
 import {useEffect, useMemo, useState} from "react";
-import type { PriceListItem, QuoteDraft, QuoteItem } from "../app/types";
-import { LS_KEYS } from "../app/storage";
-import { useLocalStorageState } from "../app/useLocalStorageState";
+import type {Company, PriceListItem, QuoteDraft, QuoteItem} from "../app/types";
+import {LS_KEYS} from "../app/storage";
+import {useLocalStorageState} from "../app/useLocalStorageState";
 import EditorPanel from "./EditorPanel";
 import QuotePreview from "./QuotePreview";
 import PriceListModal from "./PriceListModal";
 import "../styles/app.css";
 import "../styles/print.css";
 import {APP_CONFIG} from "../app/config.ts";
-import LogoUploader from "./LogoUploader.tsx";
-import {loadStoredLogo, LOGO_LS_KEY, saveStoredLogo} from "../app/LogoStorage.ts";
 
 function todayIso(): string {
     const d = new Date();
@@ -37,8 +35,9 @@ const DEFAULT_DRAFT: QuoteDraft = {
     createdAt: todayIso(),
     validUntil: addDaysIso(14),
     currency: "EUR",
-    vatMode: "WITH_VAT", // aby to sedelo so screenshotom, kľudne daj WITHOUT_VAT
+    vatMode: "WITH_VAT",
     customer: {
+        id: "",
         name: "",
         street: "",
         city: "",
@@ -48,9 +47,7 @@ const DEFAULT_DRAFT: QuoteDraft = {
         dic: "",
         icdph: "",
     },
-    items: [
-        { id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 23 },
-    ],
+    items: [{ id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 23 }],
     note: "",
     view: {
         showDeliveryAddress: false,
@@ -74,26 +71,41 @@ const DEFAULT_PRICELIST: PriceListItem[] = [
     { id: "p2", name: "Materiál B", unit: "ks", unitPrice: 12.5, vatRate: 20, sku: "M-B" },
 ];
 
+// creates a valid default supplier (ensures id + optional fields exist)
+function makeDefaultSupplier(): Company {
+    return {
+        ...APP_CONFIG.supplier,
+        id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
+        logoDataUrl: APP_CONFIG.supplier.logoDataUrl ?? null,
+        phoneMobile: APP_CONFIG.supplier.phoneMobile ?? "",
+    };
+}
 
 export default function AppShell() {
     const [draft, setDraft] = useLocalStorageState<QuoteDraft>(LS_KEYS.draft, DEFAULT_DRAFT);
     const [priceList, setPriceList] = useLocalStorageState<PriceListItem[]>(LS_KEYS.pricelist, DEFAULT_PRICELIST);
 
-    const [isPriceListOpen, setPriceListOpen] = useState(false);
-    const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+    // suppliers in localStorage (ensure default has id)
+    const [suppliers, setSuppliers] = useLocalStorageState<Company[]>(
+        LS_KEYS.suppliers,
+        [
+            {
+                ...APP_CONFIG.supplier,
+                id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
+                logoDataUrl: null,
+                phoneMobile: "",
+            },
+        ]
+    );
 
-    const canReset = useMemo(() => true, []);
+    // active supplier id in localStorage
+    const [activeSupplierId, setActiveSupplierId] = useLocalStorageState<string>(
+        LS_KEYS.activeSupplierId,
+        suppliers[0]?.id
+    );
 
-    function updateDraft(patch: Partial<QuoteDraft>) {
-        setDraft({ ...draft, ...patch });
-    }
-
+    // Make sure draft is always valid (old localStorage migrations)
     useEffect(() => {
-        setLogoDataUrl(loadStoredLogo());
-    }, []);
-
-    useEffect(() => {
-        // normalize once on mount (handles old localStorage drafts)
         setDraft((prev) => ({
             ...DEFAULT_DRAFT,
             ...prev,
@@ -104,9 +116,33 @@ export default function AppShell() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function updateLogo(next: string | null) {
-        setLogoDataUrl(next);
-        saveStoredLogo(next);
+    // Normalize suppliers + ensure activeSupplierId always points to an existing supplier
+    useEffect(() => {
+        // 1) ensure every supplier has id + new fields
+        setSuppliers((prev) => {
+            return (Array.isArray(prev) && prev.length > 0 ? prev : [makeDefaultSupplier()]).map((s) => ({
+                ...s,
+                id: s.id && String(s.id).trim().length > 0 ? s.id : crypto.randomUUID(),
+                logoDataUrl: s.logoDataUrl ?? null,
+                phoneMobile: s.phoneMobile ?? "",
+            }));
+        });
+
+        // 2) ensure activeSupplierId is valid
+        if (!activeSupplierId || !suppliers.some((s) => s.id === activeSupplierId)) {
+            const firstId = suppliers[0]?.id;
+            if (firstId) setActiveSupplierId(firstId);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [suppliers.length]);
+
+    const activeSupplier = suppliers.find((s) => s.id === activeSupplierId) ?? suppliers[0];
+
+    const [isPriceListOpen, setPriceListOpen] = useState(false);
+    const canReset = useMemo(() => true, []);
+
+    function updateDraft(patch: Partial<QuoteDraft>) {
+        setDraft({ ...draft, ...patch });
     }
 
     function updateCustomer(patch: Partial<QuoteDraft["customer"]>) {
@@ -123,10 +159,7 @@ export default function AppShell() {
     function addEmptyItem() {
         setDraft({
             ...draft,
-            items: [
-                ...draft.items,
-                { id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 20 },
-            ],
+            items: [...draft.items, { id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 20 }],
         });
     }
 
@@ -147,6 +180,39 @@ export default function AppShell() {
         setDraft({ ...draft, items: [...draft.items, ...mapped] });
     }
 
+    // Patch currently selected supplier (also used for per-supplier logo & phone)
+    function updateActiveSupplier(patch: Partial<Company>) {
+        if (!activeSupplierId) return;
+        setSuppliers((prev) => prev.map((s) => (s.id === activeSupplierId ? { ...s, ...patch } : s)));
+    }
+
+    function addSupplier() {
+        const newSupplier: Company = {
+            id: crypto.randomUUID(),
+            name: "Nový dodávateľ",
+            street: "",
+            city: "",
+            zip: "",
+            country: "",
+            ico: "",
+            dic: "",
+            icdph: "",
+            phoneMobile: "",
+            logoDataUrl: null,
+        };
+
+        setSuppliers((prev) => [...prev, newSupplier]);
+        setActiveSupplierId(newSupplier.id);
+    }
+
+    function removeSupplier(id: string) {
+        if (suppliers.length <= 1) return;
+
+        const next = suppliers.filter((s) => s.id !== id);
+        setSuppliers(next);
+        setActiveSupplierId(next[0].id);
+    }
+
     function printPdf() {
         window.print();
     }
@@ -154,11 +220,20 @@ export default function AppShell() {
     function resetAll() {
         localStorage.removeItem(LS_KEYS.draft);
         localStorage.removeItem(LS_KEYS.pricelist);
-        localStorage.removeItem(LOGO_LS_KEY);
+        localStorage.removeItem(LS_KEYS.suppliers);
+        localStorage.removeItem(LS_KEYS.activeSupplierId);
+
+        const first: Company = {
+            ...APP_CONFIG.supplier,
+            id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
+            logoDataUrl: null,
+            phoneMobile: "",
+        };
 
         setDraft(DEFAULT_DRAFT);
         setPriceList(DEFAULT_PRICELIST);
-        setLogoDataUrl(null);
+        setSuppliers([first]);
+        setActiveSupplierId(first.id);
     }
 
     return (
@@ -167,32 +242,53 @@ export default function AppShell() {
                 <div className="topbar__left">
                     <strong>Cenová ponuka</strong>
                 </div>
+
                 <div className="topbar__right">
-                    <LogoUploader value={logoDataUrl} onChange={updateLogo} />
-                    <button className="btn" onClick={() => setPriceListOpen(true)}>Vložiť položky z cenníka</button>
-                    <button className="btn" onClick={printPdf}>Stiahnuť PDF (tlač)</button>
-                    {canReset && <button className="btn btn--ghost" onClick={resetAll}>Reset</button>}
+                    <button className="btn" onClick={() => setPriceListOpen(true)}>
+                        Vložiť položky z cenníka
+                    </button>
+
+                    <button className="btn" onClick={printPdf}>
+                        Stiahnuť PDF (tlač)
+                    </button>
+
+                    {canReset && (
+                        <button className="btn btn--ghost" onClick={resetAll}>
+                            Reset
+                        </button>
+                    )}
                 </div>
             </header>
 
             <main className="main">
                 <aside className="panel no-print">
-                    <EditorPanel
-                        draft={draft}
-                        onDraftChange={updateDraft}
-                        onCustomerChange={updateCustomer}
-                        onItemChange={updateItem}
-                        onAddItem={addEmptyItem}
-                        onRemoveItem={removeItem}
-                    />
+                    {activeSupplier && (
+                        <EditorPanel
+                            draft={draft}
+                            supplier={activeSupplier}
+                            suppliers={suppliers}
+                            activeSupplierId={activeSupplierId}
+                            onSelectSupplier={setActiveSupplierId}
+                            onAddSupplier={addSupplier}
+                            onRemoveSupplier={removeSupplier}
+                            onSupplierChange={updateActiveSupplier}
+                            onDraftChange={updateDraft}
+                            onCustomerChange={updateCustomer}
+                            onItemChange={updateItem}
+                            onAddItem={addEmptyItem}
+                            onRemoveItem={removeItem}
+                        />
+                    )}
                 </aside>
 
                 <section className="previewWrap">
-                    <QuotePreview
-                        draft={draft}
-                        supplier={APP_CONFIG.supplier}
-                        logoUrl={logoDataUrl ?? APP_CONFIG.logoUrl}
-                    />
+                    {activeSupplier && (
+                        <QuotePreview
+                            draft={draft}
+                            supplier={activeSupplier}
+                            logoUrl={activeSupplier.logoDataUrl ?? APP_CONFIG.logoUrl}
+                        />
+                    )}
                 </section>
             </main>
 

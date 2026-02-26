@@ -69,6 +69,12 @@ export default function QuotePreview({ draft, supplier, logoUrl }: Props) {
                             </div>
                         )}
 
+                        {safe(supplier.phoneMobile) && (
+                            <div>
+                                <strong>Mobil:</strong> {supplier.phoneMobile}
+                            </div>
+                        )}
+
                         <div className="party__meta">
                             {showIco && (
                                 <div>

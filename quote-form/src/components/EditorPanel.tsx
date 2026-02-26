@@ -1,10 +1,23 @@
-import type { QuoteDraft, QuoteItem } from "../app/types";
+import type { Company, QuoteDraft, QuoteItem } from "../app/types";
+import LogoUploader from "./LogoUploader.tsx";
 
 type Props = {
     draft: QuoteDraft;
+
+    // Supplier selection + editing
+    supplier: Company;
+    suppliers: Company[];
+    activeSupplierId: string;
+    onSelectSupplier: (id: string) => void;
+    onAddSupplier: () => void;
+    onRemoveSupplier: (id: string) => void;
+    onSupplierChange: (patch: Partial<Company>) => void;
+
+    // Draft editing
     onDraftChange: (patch: Partial<QuoteDraft>) => void;
     onCustomerChange: (patch: Partial<QuoteDraft["customer"]>) => void;
 
+    // Items editing
     onItemChange: (id: string, patch: Partial<QuoteItem>) => void;
     onAddItem: () => void;
     onRemoveItem: (id: string) => void;
@@ -12,20 +25,27 @@ type Props = {
 
 export default function EditorPanel({
                                         draft,
+                                        supplier,
+                                        suppliers,
+                                        activeSupplierId,
+                                        onSelectSupplier,
+                                        onAddSupplier,
+                                        onRemoveSupplier,
+                                        onSupplierChange,
                                         onDraftChange,
                                         onCustomerChange,
                                         onItemChange,
                                         onAddItem,
                                         onRemoveItem,
                                     }: Props) {
-
-    const view = draft.view ?? {
-        showDeliveryAddress: false,
-        showIco: true,
-        showDic: false,
-        showIcdph: true,
-        showCountry: true,
-    };
+    const view =
+        draft.view ?? {
+            showDeliveryAddress: false,
+            showIco: true,
+            showDic: false,
+            showIcdph: true,
+            showCountry: true,
+        };
 
     return (
         <div className="panel__inner">
@@ -39,7 +59,10 @@ export default function EditorPanel({
 
                 <div className="field">
                     <label>Mena</label>
-                    <select value={draft.currency} onChange={(e) => onDraftChange({ currency: e.target.value as any })}>
+                    <select
+                        value={draft.currency}
+                        onChange={(e) => onDraftChange({ currency: e.target.value as never })}
+                    >
                         <option value="EUR">EUR</option>
                         <option value="CZK">CZK</option>
                     </select>
@@ -49,17 +72,25 @@ export default function EditorPanel({
             <div className="fieldRow">
                 <div className="field">
                     <label>Dátum vytvorenia</label>
-                    <input type="date" value={draft.createdAt} onChange={(e) => onDraftChange({ createdAt: e.target.value })} />
+                    <input
+                        type="date"
+                        value={draft.createdAt}
+                        onChange={(e) => onDraftChange({ createdAt: e.target.value })}
+                    />
                 </div>
                 <div className="field">
                     <label>Dátum platnosti</label>
-                    <input type="date" value={draft.validUntil} onChange={(e) => onDraftChange({ validUntil: e.target.value })} />
+                    <input
+                        type="date"
+                        value={draft.validUntil}
+                        onChange={(e) => onDraftChange({ validUntil: e.target.value })}
+                    />
                 </div>
             </div>
 
             <div className="field">
                 <label>Režim DPH</label>
-                <select value={draft.vatMode} onChange={(e) => onDraftChange({ vatMode: e.target.value as any })}>
+                <select value={draft.vatMode} onChange={(e) => onDraftChange({ vatMode: e.target.value as never })}>
                     <option value="WITHOUT_VAT">Doklad bez DPH</option>
                     <option value="WITH_VAT">Doklad s DPH</option>
                 </select>
@@ -118,6 +149,112 @@ export default function EditorPanel({
                     />
                     IČ DPH
                 </label>
+            </div>
+
+            <hr />
+
+            <h2>Dodávateľ</h2>
+            <div className="field">
+                <label>Logo</label>
+                <div style={{ marginTop: 6 }}>
+                    <LogoUploader
+                        value={supplier.logoDataUrl ?? null}
+                        onChange={(next) => onSupplierChange({ logoDataUrl: next })}
+                    />
+                </div>
+            </div>
+
+            <div className="fieldRow">
+                <div className="field">
+                    <label>Vybrať dodávateľa</label>
+                    <select value={activeSupplierId} onChange={(e) => onSelectSupplier(e.target.value)}>
+                        {suppliers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="field field--actions">
+                    <button type="button" className="btn" onClick={onAddSupplier}>
+                        + Nový
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn btn--danger"
+                        onClick={() => onRemoveSupplier(activeSupplierId)}
+                        disabled={suppliers.length <= 1}
+                        title={suppliers.length <= 1 ? "Musí existovať aspoň 1 dodávateľ" : undefined}
+                    >
+                        Odstrániť
+                    </button>
+                </div>
+            </div>
+
+            <div className="field">
+                <label>Názov</label>
+                <input value={supplier.name ?? ""} onChange={(e) => onSupplierChange({ name: e.target.value })} />
+            </div>
+
+            <div className="fieldRow">
+                <div className="field">
+                    <label>Ulica a číslo</label>
+                    <input value={supplier.street ?? ""} onChange={(e) => onSupplierChange({ street: e.target.value })} />
+                </div>
+                <div className="field">
+                    <label>Mesto</label>
+                    <input value={supplier.city ?? ""} onChange={(e) => onSupplierChange({ city: e.target.value })} />
+                </div>
+            </div>
+
+            <div className="fieldRow">
+                <div className="field">
+                    <label>PSČ</label>
+                    <input value={supplier.zip ?? ""} onChange={(e) => onSupplierChange({ zip: e.target.value })} />
+                </div>
+
+                {view.showCountry && (
+                    <div className="field">
+                        <label>Krajina</label>
+                        <input value={supplier.country ?? ""} onChange={(e) => onSupplierChange({ country: e.target.value })} />
+                    </div>
+                )}
+            </div>
+
+            {(view.showIco || view.showDic) && (
+                <div className="fieldRow">
+                    {view.showIco && (
+                        <div className="field">
+                            <label>IČO</label>
+                            <input value={supplier.ico ?? ""} onChange={(e) => onSupplierChange({ ico: e.target.value })} />
+                        </div>
+                    )}
+
+                    {view.showDic && (
+                        <div className="field">
+                            <label>DIČ</label>
+                            <input value={supplier.dic ?? ""} onChange={(e) => onSupplierChange({ dic: e.target.value })} />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {view.showIcdph && (
+                <div className="field">
+                    <label>IČ DPH</label>
+                    <input value={supplier.icdph ?? ""} onChange={(e) => onSupplierChange({ icdph: e.target.value })} />
+                </div>
+            )}
+
+            <div className="field">
+                <label>Mobil</label>
+                <input
+                    value={supplier.phoneMobile ?? ""}
+                    onChange={(e) => onSupplierChange({ phoneMobile: e.target.value })}
+                    placeholder="+421 9xx xxx xxx"
+                />
             </div>
 
             <hr />
