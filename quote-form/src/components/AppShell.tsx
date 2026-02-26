@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import type { PriceListItem, QuoteDraft, QuoteItem } from "../app/types";
 import { LS_KEYS } from "../app/storage";
 import { useLocalStorageState } from "../app/useLocalStorageState";
@@ -7,6 +7,9 @@ import QuotePreview from "./QuotePreview";
 import PriceListModal from "./PriceListModal";
 import "../styles/app.css";
 import "../styles/print.css";
+import {APP_CONFIG} from "../app/config.ts";
+import LogoUploader from "./LogoUploader.tsx";
+import {loadStoredLogo, LOGO_LS_KEY, saveStoredLogo} from "../app/LogoStorage.ts";
 
 function todayIso(): string {
     const d = new Date();
@@ -34,17 +37,7 @@ const DEFAULT_DRAFT: QuoteDraft = {
     createdAt: todayIso(),
     validUntil: addDaysIso(14),
     currency: "EUR",
-    vatMode: "WITHOUT_VAT",
-    supplier: {
-        name: "Moja Firma s.r.o.",
-        street: "Ulica 1",
-        city: "Bratislava",
-        zip: "811 01",
-        country: "Slovensko",
-        ico: "12345678",
-        dic: "1234567890",
-        icdph: "SK1234567890",
-    },
+    vatMode: "WITH_VAT", // aby to sedelo so screenshotom, kľudne daj WITHOUT_VAT
     customer: {
         name: "",
         street: "",
@@ -56,26 +49,64 @@ const DEFAULT_DRAFT: QuoteDraft = {
         icdph: "",
     },
     items: [
-        { id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 20 },
+        { id: uid(), name: "", description: "", qty: 1, unit: "ks", unitPrice: 0, vatRate: 23 },
     ],
     note: "",
+    view: {
+        showDeliveryAddress: false,
+        showIco: true,
+        showDic: false,
+        showIcdph: true,
+        showCountry: true,
+    },
 };
+
+const DEFAULT_VIEW = {
+    showDeliveryAddress: false,
+    showIco: true,
+    showDic: false,
+    showIcdph: true,
+    showCountry: true,
+} as const;
 
 const DEFAULT_PRICELIST: PriceListItem[] = [
     { id: "p1", name: "Služba A", unit: "ks", unitPrice: 50, vatRate: 20, sku: "S-A" },
     { id: "p2", name: "Materiál B", unit: "ks", unitPrice: 12.5, vatRate: 20, sku: "M-B" },
 ];
 
+
 export default function AppShell() {
     const [draft, setDraft] = useLocalStorageState<QuoteDraft>(LS_KEYS.draft, DEFAULT_DRAFT);
     const [priceList, setPriceList] = useLocalStorageState<PriceListItem[]>(LS_KEYS.pricelist, DEFAULT_PRICELIST);
 
     const [isPriceListOpen, setPriceListOpen] = useState(false);
+    const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
 
     const canReset = useMemo(() => true, []);
 
     function updateDraft(patch: Partial<QuoteDraft>) {
         setDraft({ ...draft, ...patch });
+    }
+
+    useEffect(() => {
+        setLogoDataUrl(loadStoredLogo());
+    }, []);
+
+    useEffect(() => {
+        // normalize once on mount (handles old localStorage drafts)
+        setDraft((prev) => ({
+            ...DEFAULT_DRAFT,
+            ...prev,
+            customer: { ...DEFAULT_DRAFT.customer, ...(prev.customer ?? {}) },
+            items: Array.isArray(prev.items) && prev.items.length > 0 ? prev.items : DEFAULT_DRAFT.items,
+            view: { ...DEFAULT_VIEW, ...(prev.view ?? {}) },
+        }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    function updateLogo(next: string | null) {
+        setLogoDataUrl(next);
+        saveStoredLogo(next);
     }
 
     function updateCustomer(patch: Partial<QuoteDraft["customer"]>) {
@@ -123,8 +154,11 @@ export default function AppShell() {
     function resetAll() {
         localStorage.removeItem(LS_KEYS.draft);
         localStorage.removeItem(LS_KEYS.pricelist);
+        localStorage.removeItem(LOGO_LS_KEY);
+
         setDraft(DEFAULT_DRAFT);
         setPriceList(DEFAULT_PRICELIST);
+        setLogoDataUrl(null);
     }
 
     return (
@@ -134,6 +168,7 @@ export default function AppShell() {
                     <strong>Cenová ponuka</strong>
                 </div>
                 <div className="topbar__right">
+                    <LogoUploader value={logoDataUrl} onChange={updateLogo} />
                     <button className="btn" onClick={() => setPriceListOpen(true)}>Vložiť položky z cenníka</button>
                     <button className="btn" onClick={printPdf}>Stiahnuť PDF (tlač)</button>
                     {canReset && <button className="btn btn--ghost" onClick={resetAll}>Reset</button>}
@@ -153,7 +188,11 @@ export default function AppShell() {
                 </aside>
 
                 <section className="previewWrap">
-                    <QuotePreview draft={draft} />
+                    <QuotePreview
+                        draft={draft}
+                        supplier={APP_CONFIG.supplier}
+                        logoUrl={logoDataUrl ?? APP_CONFIG.logoUrl}
+                    />
                 </section>
             </main>
 

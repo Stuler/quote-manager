@@ -67,6 +67,7 @@ input:focus, select:focus, textarea:focus { border-color: #93c5fd; box-shadow: 0
 .doc__header { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12mm; align-items: start; }
 .logoBox { border: 1px solid var(--border); border-radius: 10px; height: 42mm; display:flex; align-items:center; justify-content:center; }
 .logoPlaceholder { color: #9ca3af; }
+.logoImg { max-width: 100%; max-height: 100%; object-fit: contain; padding: 10px; }
 
 .titleBox { text-align: right; }
 .title { font-size: 32px; letter-spacing: 2px; color: var(--blue); font-weight: 700; }
@@ -148,3 +149,65 @@ input:focus, select:focus, textarea:focus { border-color: #93c5fd; box-shadow: 0
 .simpleTable { width:100%; border-collapse: collapse; }
 .simpleTable th, .simpleTable td { border-bottom: 1px solid var(--border); padding: 10px; text-align:left; }
 .muted { color: #6b7280; font-size: 12px; }
+
+.vatSummaryRow {
+    margin-top: 12mm;
+    display: grid;
+    grid-template-columns: 1fr 70mm;
+    gap: 12mm;
+    align-items: start;
+}
+
+.vatTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.vatTable th, .vatTable td {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+}
+.vatTable thead th {
+    font-weight: 700;
+    background: #fff;
+}
+
+.vatNote {
+    margin-top: 8mm;
+    font-size: 12px;
+    color: #111827;
+}
+
+.chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #374151;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+}
+.chk input { width: 16px; height: 16px; }
+
+.logoImg { max-width: 100%; max-height: 100%; object-fit: contain; padding: 10px; }
+
+.ph {
+    color: #1e88e5;
+    opacity: 0.95;
+}
+.party__name .ph { font-weight: 600; }
+.itName .ph { color: #9ca3af; font-weight: 600; }
+
+.deliveryBox {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+}
+.deliveryLabel {
+    font-weight: 700;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 6px;
+}

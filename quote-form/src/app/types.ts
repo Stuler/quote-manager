@@ -10,6 +10,11 @@ export type Company = {
     ico?: string;
     dic?: string;
     icdph?: string;
+
+    deliveryStreet?: string;
+    deliveryCity?: string;
+    deliveryZip?: string;
+    deliveryCountry?: string;
 };
 
 export type QuoteItem = {
@@ -17,10 +22,18 @@ export type QuoteItem = {
     name: string;
     description?: string;
     qty: number;
-    unit: string;      // "ks"
-    unitPrice: number; // bez DPH (alebo podľa tvojho režimu)
+    unit: string;
+    unitPrice: number; // ALWAYS bez DPH (netto)
     discountPct?: number;
-    vatRate?: number;  // 20
+    vatRate?: number;
+};
+
+export type QuoteViewSettings = {
+    showDeliveryAddress: boolean;
+    showIco: boolean;
+    showDic: boolean;
+    showIcdph: boolean;
+    showCountry: boolean;
 };
 
 export type QuoteDraft = {
@@ -30,18 +43,19 @@ export type QuoteDraft = {
     currency: CurrencyCode;
     vatMode: VatMode;
 
-    supplier: Company; // pre jednu firmu môže byť fixné a len read-only
     customer: Company;
-
     items: QuoteItem[];
+
     note?: string;
+
+    view: QuoteViewSettings;
 };
 
 export type PriceListItem = {
     id: string;
     name: string;
     unit: string;
-    unitPrice: number;
+    unitPrice: number; // ALWAYS bez DPH
     vatRate?: number;
     sku?: string;
 };
