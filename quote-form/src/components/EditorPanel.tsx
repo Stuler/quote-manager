@@ -160,7 +160,37 @@ export default function EditorPanel({
                     <LogoUploader
                         value={supplier.logoDataUrl ?? null}
                         onChange={(next) => onSupplierChange({ logoDataUrl: next })}
+                        buttonLabel="Nahrať logo"
+                        previewAlt="Logo spoločnosti"
                     />
+                </div>
+            </div>
+
+            <div className="fieldRow">
+                <div className="field">
+                    <label>Pečiatka</label>
+                    <div style={{ marginTop: 6 }}>
+                        <LogoUploader
+                            value={supplier.stampDataUrl ?? null}
+                            onChange={(next) => onSupplierChange({ stampDataUrl: next })}
+                            buttonLabel="Nahrať pečiatku"
+                            previewAlt="Pečiatka spoločnosti"
+                            outputFormat="image/png"
+                        />
+                    </div>
+                </div>
+
+                <div className="field">
+                    <label>Podpis</label>
+                    <div style={{ marginTop: 6 }}>
+                        <LogoUploader
+                            value={supplier.signatureDataUrl ?? null}
+                            onChange={(next) => onSupplierChange({ signatureDataUrl: next })}
+                            buttonLabel="Nahrať podpis"
+                            previewAlt="Podpis spoločnosti"
+                            outputFormat="image/png"
+                        />
+                    </div>
                 </div>
             </div>
 

@@ -52,6 +52,21 @@ input:focus, select:focus, textarea:focus { border-color: #93c5fd; box-shadow: 0
 .items { display: flex; flex-direction: column; gap: 10px; }
 .itemCard { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #fff; }
 .field--actions { justify-content: flex-end; }
+.imageUploader {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.imageUploader__preview {
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    object-fit: contain;
+    background: #fff;
+    padding: 4px;
+}
 
 .a4 {
     width: 210mm;
@@ -129,6 +144,31 @@ input:focus, select:focus, textarea:focus { border-color: #93c5fd; box-shadow: 0
     align-items: end;
 }
 .note { color: #111827; min-height: 20mm; }
+.signatureBox {
+    justify-self: end;
+    width: 68mm;
+}
+.signatureAssets {
+    position: relative;
+    min-height: 30mm;
+    border-bottom: 1px solid var(--border);
+}
+.stampImg {
+    position: absolute;
+    left: 0;
+    bottom: 2mm;
+    max-width: 28mm;
+    max-height: 22mm;
+    object-fit: contain;
+}
+.signatureImg {
+    position: absolute;
+    right: 0;
+    bottom: 3mm;
+    max-width: 46mm;
+    max-height: 18mm;
+    object-fit: contain;
+}
 .signature { text-align: right; font-weight: 600; }
 
 .modalBackdrop {

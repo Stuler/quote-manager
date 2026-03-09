@@ -13,7 +13,8 @@ export type Company = {
     icdph?: string;
     phoneMobile?: string;
     logoDataUrl?: string | null;
-
+    stampDataUrl?: string | null;
+    signatureDataUrl?: string | null;
     deliveryStreet?: string;
     deliveryCity?: string;
     deliveryZip?: string;

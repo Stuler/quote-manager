@@ -3,16 +3,20 @@ import { useRef, useState } from "react";
 type Props = {
     value: string | null; // dataURL
     onChange: (next: string | null) => void;
+    buttonLabel?: string;
+    removeLabel?: string;
+    previewAlt?: string;
     maxWidth?: number; // px
     jpegQuality?: number; // 0..1
+    outputFormat?: "image/jpeg" | "image/png";
 };
 
 async function fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = reject;
-        r.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
 }
 
@@ -25,38 +29,53 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
     });
 }
 
-function canvasToJpegDataUrl(canvas: HTMLCanvasElement, quality: number): string {
-    return canvas.toDataURL("image/jpeg", quality);
+function canvasToDataUrl(
+    canvas: HTMLCanvasElement,
+    outputFormat: "image/jpeg" | "image/png",
+    quality: number
+): string {
+    if (outputFormat === "image/png") {
+        return canvas.toDataURL(outputFormat);
+    }
+
+    return canvas.toDataURL(outputFormat, quality);
 }
 
-async function downscaleToJpegDataUrl(file: File, maxWidth: number, quality: number): Promise<string> {
+async function downscaleToDataUrl(
+    file: File,
+    maxWidth: number,
+    quality: number,
+    outputFormat: "image/jpeg" | "image/png"
+): Promise<string> {
     const src = await fileToDataUrl(file);
     const img = await loadImage(src);
 
-    // keep aspect ratio; only downscale if needed
     const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-    const w = Math.round(img.width * scale);
-    const h = Math.round(img.height * scale);
+    const width = Math.round(img.width * scale);
+    const height = Math.round(img.height * scale);
 
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas context not available");
 
-    ctx.drawImage(img, 0, 0, w, h);
+    ctx.drawImage(img, 0, 0, width, height);
 
-    // JPEG is smaller than PNG for most uploads
-    return canvasToJpegDataUrl(canvas, quality);
+    return canvasToDataUrl(canvas, outputFormat, quality);
 }
 
-export default function LogoUploader({
-                                         value,
-                                         onChange,
-                                         maxWidth = 900,
-                                         jpegQuality = 0.85,
-                                     }: Props) {
+export default function ImageUploader({
+    value,
+    onChange,
+    buttonLabel = "Nahrať obrázok",
+    removeLabel = "Odstrániť",
+    previewAlt = "Nahraný obrázok",
+    maxWidth = 900,
+    jpegQuality = 0.85,
+    outputFormat = "image/jpeg",
+}: Props) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -68,51 +87,49 @@ export default function LogoUploader({
             return;
         }
 
-        // soft guard: avoid enormous files (still OK if you downscale, but safer UX)
         if (file.size > 12 * 1024 * 1024) {
             setError("Image is too large. Please choose a smaller file.");
             return;
         }
 
         try {
-            const dataUrl = await downscaleToJpegDataUrl(file, maxWidth, jpegQuality);
+            const dataUrl = await downscaleToDataUrl(file, maxWidth, jpegQuality, outputFormat);
 
-            // localStorage is usually ~5MB; warn if we got a huge data URL
             if (dataUrl.length > 4_500_000) {
-                setError("The logo is still quite large. Try a smaller image.");
+                setError("The image is still quite large. Try a smaller file.");
             }
 
             onChange(dataUrl);
-        } catch (e) {
+        } catch {
             setError("Failed to process the image.");
         }
     }
 
     return (
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="imageUploader">
             <input
                 ref={inputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 style={{ display: "none" }}
                 onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void onPick(f);
-                    // allow re-selecting the same file
+                    const file = e.target.files?.[0];
+                    if (file) void onPick(file);
                     e.currentTarget.value = "";
                 }}
             />
 
             <button type="button" className="btn" onClick={() => inputRef.current?.click()}>
-                Nahrať logo
+                {buttonLabel}
             </button>
 
             {value && (
                 <button type="button" className="btn btn--ghost" onClick={() => onChange(null)}>
-                    Odstrániť
+                    {removeLabel}
                 </button>
             )}
 
+            {value && <img src={value} alt={previewAlt} className="imageUploader__preview" />}
             {error && <span style={{ color: "#b91c1c", fontSize: 12 }}>{error}</span>}
         </div>
     );

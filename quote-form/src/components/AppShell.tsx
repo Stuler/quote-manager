@@ -77,6 +77,8 @@ function makeDefaultSupplier(): Company {
         ...APP_CONFIG.supplier,
         id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
         logoDataUrl: APP_CONFIG.supplier.logoDataUrl ?? null,
+        stampDataUrl: null,
+        signatureDataUrl: null,
         phoneMobile: APP_CONFIG.supplier.phoneMobile ?? "",
     };
 }
@@ -93,6 +95,8 @@ export default function AppShell() {
                 ...APP_CONFIG.supplier,
                 id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
                 logoDataUrl: null,
+                stampDataUrl: null,
+                signatureDataUrl: null,
                 phoneMobile: "",
             },
         ]
@@ -124,6 +128,8 @@ export default function AppShell() {
                 ...s,
                 id: s.id && String(s.id).trim().length > 0 ? s.id : crypto.randomUUID(),
                 logoDataUrl: s.logoDataUrl ?? null,
+                stampDataUrl: s.stampDataUrl ?? null,
+                signatureDataUrl: s.signatureDataUrl ?? null,
                 phoneMobile: s.phoneMobile ?? "",
             }));
         });
@@ -199,6 +205,8 @@ export default function AppShell() {
             icdph: "",
             phoneMobile: "",
             logoDataUrl: null,
+            stampDataUrl: null,
+            signatureDataUrl: null,
         };
 
         setSuppliers((prev) => [...prev, newSupplier]);
@@ -227,6 +235,8 @@ export default function AppShell() {
             ...APP_CONFIG.supplier,
             id: APP_CONFIG.supplier.id ?? crypto.randomUUID(),
             logoDataUrl: null,
+            stampDataUrl: null,
+            signatureDataUrl: null,
             phoneMobile: "",
         };
 
@@ -280,7 +290,7 @@ export default function AppShell() {
                         />
                     )}
                 </aside>
-
+{/*// lolo*/}
                 <section className="previewWrap">
                     {activeSupplier && (
                         <QuotePreview

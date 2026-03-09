@@ -259,7 +259,17 @@ export default function QuotePreview({ draft, supplier, logoUrl }: Props) {
 
                 <div className="doc__footer">
                     <div className="note">{safe(draft.note) ? draft.note : " "}</div>
-                    <div className="signature">Podpis a pečiatka</div>
+                    <div className="signatureBox">
+                        <div className="signatureAssets">
+                            {supplier.stampDataUrl && (
+                                <img src={supplier.stampDataUrl} alt="Pečiatka spoločnosti" className="stampImg" />
+                            )}
+                            {supplier.signatureDataUrl && (
+                                <img src={supplier.signatureDataUrl} alt="Podpis spoločnosti" className="signatureImg" />
+                            )}
+                        </div>
+                        <div className="signature">Podpis a pečiatka</div>
+                    </div>
                 </div>
             </div>
         </div>
